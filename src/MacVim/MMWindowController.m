@@ -165,9 +165,9 @@
 
     vimView = [[MMVimView alloc] initWithFrame:[contentView frame]
                                  vimController:vimController];
-    [vimView setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
+    [vimView setAutoresizingMask:NSViewNotSizable];
 
-    splitView = [[NSSplitView alloc] initWithFrame:frame];
+    splitView = [[NSSplitView alloc] initWithFrame:[contentView frame]];
     [splitView setVertical:YES];
     [splitView setDividerStyle:NSSplitViewDividerStyleThin];
     [splitView setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
@@ -206,7 +206,7 @@
         [win _setContentHasShadow:NO];
 
     fileBrowserController = nil;
-    if ([ud boolForKey:MMSidebarVisibleKey]) {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:MMSidebarVisibleKey]) {
         [self openFileBrowser:nil];
         [win makeFirstResponder:[vimView textView]];
     }
@@ -395,7 +395,10 @@
     [vimView setDesiredRows:rows columns:cols];
 
     if (setupDone && !live) {
-        shouldResizeVimView = YES;
+        // TODO after the split browser merge, this call makes the window shrink.
+        // This has probably more to do with some calculation of the window size
+        // somewhere being thrown off by the sidebar, though.
+        // shouldResizeVimView = YES;
         keepOnScreen = onScreen;
     }
 }
@@ -609,36 +612,18 @@
     if (!on) {
         if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask)
                 == 0) {
-            [self hideTablineSeparator:![toolbar isVisible]];
+            [self hideTablineSeparator:![decoratedWindow toolbar]];
         } else {
-            separator = YES;
+            [self hideTablineSeparator:NO];
         }
     } else {
         if (([decoratedWindow styleMask] & NSTexturedBackgroundWindowMask)
                 == 0) {
-            separator = !on;
+            [self hideTablineSeparator:on];
         } else {
-            separator = NO;
+            [self hideTablineSeparator:YES];
         }
     }
-
-#if 1
-    NSSize size;
-    if (fullscreenEnabled) {
-        size = [[fullscreenWindow contentView] frame].size;
-    } else {
-        size = [[decoratedWindow contentView] frame].size;
-        if (separator)
-            size.height -= 1;
-    }
-
-    if (on)
-        size.height -= 22;
-
-    if (!NSEqualSizes(size, [splitView frame].size)) {
-        [splitView setFrameSize:size];
-    }
-#endif
 }
 
 - (void)showToolbar:(BOOL)on size:(int)size mode:(int)mode
@@ -903,7 +888,7 @@
 
     // Need to place views to make sure scrollbars are positioned properly now
     // that the view layout may have changed.
-    shouldPlaceVimView = YES;
+    shouldResizeVimView = YES;
 }
 
 
@@ -1165,6 +1150,10 @@
     [self collapseSidebar:NO];
 }
 
+- (IBAction)closeFileBrowser:(id)sender
+{
+    [self collapseSidebar:YES];
+}
 
 - (IBAction)toggleFileBrowser:(id)sender
 {

@@ -83,6 +83,11 @@ enum {
     MMTerminateWhenLastWindowClosed = 2,
 };
 
+enum {
+    MMSidebarMinWidth     = 100,
+    MMSidebarDefaultWidth = 240
+};
+
 
 
 

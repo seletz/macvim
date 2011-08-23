@@ -30,7 +30,7 @@
 #import "MMWindowController.h"
 #import "Miscellaneous.h"
 #import <Carbon/Carbon.h>
-//#import <PSMTabBarControl/PSMTabBarControl.h>
+#import <PSMTabBarControl/PSMTabBarControl.h>
 
 // These have to be the same as in option.h
 #define FUOPT_MAXVERT         0x001
@@ -45,7 +45,7 @@ enum {
 };
 
 
-@interface MMFullscreenWindow (Private)
+@interface MMFullScreenWindow (Private)
 - (BOOL)isOnPrimaryScreen;
 - (void)windowDidBecomeMain:(NSNotification *)notification;
 - (void)windowDidResignMain:(NSNotification *)notification;
@@ -154,8 +154,8 @@ enum {
     // make target's window controller believe that it's now controlling us
     [[target windowController] setWindow:self];
 
-    //oldTabBarStyle = [[view tabBarControl] styleName];
-    //[[view tabBarControl] setStyleNamed:@"Unified"];
+    oldTabBarStyle = [[view tabBarControl] styleName];
+    [[view tabBarControl] setStyleNamed:@"Unified"];
 
     // add text view
     oldPosition = [view frame].origin;
@@ -260,7 +260,7 @@ enum {
     [self retain];  // NSWindowController releases us once
     [[self windowController] setWindow:target];
 
-    //[[view tabBarControl] setStyleNamed:oldTabBarStyle];
+    [[view tabBarControl] setStyleNamed:oldTabBarStyle];
 
     // fix delegate
     id delegate = [self delegate];
@@ -384,18 +384,6 @@ enum {
     [view setFrameOrigin:origin];
 }
 
-- (BOOL)isOnPrimaryScreen
-{
-    // The primary screen is the screen the menu bar is on. This is different
-    // from [NSScreen mainScreen] (which returns the screen containing the
-    // key window).
-    NSArray *screens = [NSScreen screens];
-    if (screens == nil || [screens count] < 1)
-        return NO;
-
-    return [self screen] == [screens objectAtIndex:0];
-}
-
 - (void)scrollWheel:(NSEvent *)theEvent
 {
     [[view textView] scrollWheel:theEvent];
@@ -442,13 +430,13 @@ enum {
 {
     // Hide menu and dock, both appear on demand.
     //
-    // Another way to deal with several fullscreen windows would be to hide/
-    // reveal the dock only when the first fullscreen window is created and
+    // Another way to deal with several full-screen windows would be to hide/
+    // reveal the dock only when the first full-screen window is created and
     // show it again after the last one has been closed, but toggling on each
     // focus gain/loss works better with Spaces. The downside is that the
-    // menu bar flashes shortly when switching between two fullscreen windows.
+    // menu bar flashes shortly when switching between two full-screen windows.
 
-    // XXX: If you have a fullscreen window on a secondary monitor and unplug
+    // XXX: If you have a full-screen window on a secondary monitor and unplug
     // the monitor, this will probably not work right.
 
     if ([self isOnPrimaryScreen]) {
@@ -470,9 +458,9 @@ enum {
         return;
 
     // Window may move as a result of being dragged between Spaces.
-    ASLogDebug(@"Full screen window moved, ensuring it covers the screen...");
+    ASLogDebug(@"Full-screen window moved, ensuring it covers the screen...");
 
-    // Ensure the full screen window is still covering the entire screen and
+    // Ensure the full-screen window is still covering the entire screen and
     // then resize view according to 'fuopt'.
     [self setFrame:[[self screen] frame] display:NO];
     [self resizeVimView];

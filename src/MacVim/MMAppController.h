@@ -19,7 +19,6 @@
 @interface MMAppController : NSObject <MMAppProtocol> {
     NSConnection        *connection;
     NSMutableArray      *vimControllers;
-    NSMutableArray      *toAddVimControllers;
     NSString            *openSelectionString;
     NSMutableDictionary *pidArguments;
     NSMenu              *defaultMainMenu;

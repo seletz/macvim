@@ -297,11 +297,6 @@
 #endif
 }
 
-- (void)batchDrawNow
-{
-    // Nothing to do, NSTextView handles drawing
-}
-
 - (void)setMouseShape:(int)shape
 {
     [helper setMouseShape:shape];

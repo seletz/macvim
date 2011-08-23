@@ -47,7 +47,6 @@
     NSPoint             userTopLeft;
     NSPoint             defaultTopLeft;
     NSToolbar           *toolbar;
-    BOOL                vimTaskSelectedTab;
     MMFileBrowserController *fileBrowserController;
 }
 
