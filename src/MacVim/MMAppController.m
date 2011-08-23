@@ -136,7 +136,6 @@ typedef struct
 - (int)executeInLoginShell:(NSString *)path arguments:(NSArray *)args;
 - (void)reapChildProcesses:(id)sender;
 - (void)processInputQueues:(id)sender;
-- (void)addVimControllers:(id)sender;
 - (void)addVimController:(MMVimController *)vc;
 - (NSDictionary *)convertVimControllerArguments:(NSDictionary *)args
                                   toCommandLine:(NSArray **)cmdline;
@@ -224,6 +223,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
         [NSNumber numberWithBool:YES],  MMUseInlineImKey,
 #endif // INCLUDE_OLD_IM_CODE
         [NSNumber numberWithBool:NO],   MMSuppressTerminationAlertKey,
+        [NSNumber numberWithBool:YES],  MMNativeFullScreenKey,
         [NSNumber numberWithBool:NO],   MMSidebarOnLeftEdgeKey,
         [NSNumber numberWithInt:MMSidebarDefaultWidth],
                                         MMSidebarWidthKey,
@@ -252,7 +252,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
 #endif
 
     vimControllers = [NSMutableArray new];
-    toAddVimControllers = [NSMutableArray new];
     cachedVimControllers = [NSMutableArray new];
     preloadPid = -1;
     pidArguments = [NSMutableDictionary new];
@@ -288,7 +287,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     [inputQueues release];  inputQueues = nil;
     [pidArguments release];  pidArguments = nil;
     [vimControllers release];  vimControllers = nil;
-    [toAddVimControllers release];  toAddVimControllers = nil;
     [cachedVimControllers release];  cachedVimControllers = nil;
     [openSelectionString release];  openSelectionString = nil;
     [recentFilesMenuItem release];  recentFilesMenuItem = nil;
@@ -795,7 +793,7 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             if (NSMaxX(winFrame) > NSMaxX(screenFrame))
                 topLeft.x = NSMinX(screenFrame);
             if (NSMinY(winFrame) < NSMinY(screenFrame))
-                topLeft.y = NSMaxY([screen visibleFrame]);
+                topLeft.y = NSMaxY(screenFrame);
         } else {
             ASLogNotice(@"Window not on screen, don't constrain position");
         }
@@ -1262,27 +1260,22 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
     // NOTE: Allocate the vim controller now but don't add it to the list of
     // controllers since this is a distributed object call and as such can
     // arrive at unpredictable times (e.g. while iterating the list of vim
-    // controllers).  Also, since the app may be multithreaded (e.g. as a
-    // result of showing the open panel) we have to ensure this call happens on
-    // the main thread, else there is a race condition that may lead to a
-    // crash.
-    // We add the controller to a temporary list first since it is possible
-    // that input for this controller arrives before addVimControllers: is
-    // called, in which case we need to be able to get to the temporary list of
-    // controllers to be added.  (The reason input can arrive early is because
-    // new input is processed in more run loop modes than just the default
-    // mode.)  Note that addVimControllers: is guaranteed to be called before
-    // removeVimController: since both are called in the same run loop mode.
+    // controllers).
+    // (What if input arrives before the vim controller is added to the list of
+    // controllers?  This should not be a problem since the input isn't
+    // processed immediately (see processInput:forIdentifier:).)
+    // Also, since the app may be multithreaded (e.g. as a result of showing
+    // the open panel) we have to ensure this call happens on the main thread,
+    // else there is a race condition that may lead to a crash.
     MMVimController *vc = [[MMVimController alloc] initWithBackend:proxy
                                                                pid:pid];
-    [toAddVimControllers addObject:vc];
-    [vc release];
-
-    [self performSelectorOnMainThread:@selector(addVimControllers:)
-                           withObject:nil
+    [self performSelectorOnMainThread:@selector(addVimController:)
+                           withObject:vc
                         waitUntilDone:NO
                                 modes:[NSArray arrayWithObject:
                                        NSDefaultRunLoopMode]];
+
+    [vc release];
 
     return [vc vimControllerId];
 }
@@ -2277,16 +2270,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
             }
         }
 
-        count = [toAddVimControllers count];
-        for (i = 0; i < count; ++i) {
-            MMVimController *vc = [toAddVimControllers objectAtIndex:i];
-            if (ukey == [vc vimControllerId]) {
-                ASLogDebug(@"Input arrived before VC was added: %d", ukey);
-                [vc processInputQueue:[queues objectForKey:key]]; // !exceptions
-                break;
-            }
-        }
-
         if (i == count) {
             ASLogWarn(@"No Vim controller for identifier=%d", ukey);
         }
@@ -2305,15 +2288,6 @@ fsEventCallback(ConstFSEventStreamRef streamRef,
                                            NSEventTrackingRunLoopMode, nil]];
 
     processingFlag = 0;
-}
-
-- (void)addVimControllers:(id)sender
-{
-    NSUInteger i, count = [toAddVimControllers count];
-    for (i = 0; i < count; ++i)
-        [self addVimController:[toAddVimControllers objectAtIndex:i]];
-
-    [toAddVimControllers removeAllObjects];
 }
 
 - (void)addVimController:(MMVimController *)vc

@@ -12,9 +12,8 @@
 
 
 
-@class PSMTabBarControl;
 @class MMWindow;
-@class MMFullscreenWindow;
+@class MMFullScreenWindow;
 @class MMVimController;
 @class MMVimView;
 @class MMFileBrowserController;
@@ -25,27 +24,29 @@
     <NSWindowDelegate, NSSplitViewDelegate>
 #endif
 {
-    NSTabView           *tabView;
-    PSMTabBarControl    *tabBarControl;
     MMVimController     *vimController;
     NSSplitView         *splitView;
     MMVimView           *vimView;
     NSView              *sidebarView;
     BOOL                setupDone;
     BOOL                windowPresented;
-    BOOL                shouldPlaceVimView;
-    BOOL                shouldResizeWindow;
+    BOOL                shouldResizeVimView;
     BOOL                shouldRestoreUserTopLeft;
     int                 updateToolbarFlag;
-    BOOL                fullscreenEnabled;
+    BOOL                keepOnScreen;
     NSString            *windowAutosaveKey;
-    MMFullscreenWindow  *fullscreenWindow;
+    BOOL                fullScreenEnabled;
+    MMFullScreenWindow  *fullScreenWindow;
+    int                 fullScreenOptions;
+    BOOL                delayEnterFullScreen;
+    NSRect              preFullScreenFrame;
     MMWindow            *decoratedWindow;
     NSString            *lastSetTitle;
     int                 userRows;
     int                 userCols;
     NSPoint             userTopLeft;
     NSPoint             defaultTopLeft;
+    NSToolbar           *toolbar;
     BOOL                vimTaskSelectedTab;
     MMFileBrowserController *fileBrowserController;
 }
@@ -58,10 +59,10 @@
 - (void)cleanup;
 - (void)openWindow;
 - (BOOL)presentWindow:(id)unused;
-- (void)setTextDimensionsWithRows:(int)rows
-                          columns:(int)cols
-                           isLive:(BOOL)live
-                          isReply:(BOOL)reply;
+- (void)updateTabsWithData:(NSData *)data;
+- (void)selectTabWithIndex:(int)idx;
+- (void)setTextDimensionsWithRows:(int)rows columns:(int)cols isLive:(BOOL)live
+                     keepOnScreen:(BOOL)onScreen;
 - (void)zoomWithRows:(int)rows columns:(int)cols state:(int)state;
 - (void)setTitle:(NSString *)title;
 - (void)setDocumentFilename:(NSString *)filename;
@@ -83,16 +84,14 @@
 - (void)liveResizeWillStart;
 - (void)liveResizeDidEnd;
 
-- (void)enterFullscreen:(int)fuoptions backgroundColor:(NSColor *)back;
-- (void)leaveFullscreen;
-- (void)setFullscreenBackgroundColor:(NSColor *)back;
+- (void)enterFullScreen:(int)fuoptions backgroundColor:(NSColor *)back;
+- (void)leaveFullScreen;
+- (void)setFullScreenBackgroundColor:(NSColor *)back;
+- (void)invFullScreen:(id)sender;
 
 - (void)setBufferModified:(BOOL)mod;
 - (void)setTopLeft:(NSPoint)pt;
 - (BOOL)getDefaultTopLeft:(NSPoint*)pt;
-
-- (void)updateTabsWithData:(NSData *)data;
-- (void)selectTabWithIndex:(int)idx;
 
 - (void)collapseSidebar:(BOOL)on;
 - (BOOL)isSidebarCollapsed;
