@@ -142,7 +142,7 @@ static int vim_error_check(void);
 static int do_mzscheme_command(exarg_T *, void *, Scheme_Closed_Prim *what);
 static void startup_mzscheme(void);
 static char *string_to_line(Scheme_Object *obj);
-static void do_output(char *mesg, long len);
+static void do_output(char *mesg, intptr_t len);
 static void do_printf(char *format, ...);
 static void do_flush(void);
 static Scheme_Object *_apply_thunk_catch_exceptions(
@@ -1349,8 +1349,9 @@ do_intrnl_output(char *mesg, int error)
 }
 
     static void
-do_output(char *mesg, long len UNUSED)
+do_output(char *mesg, intptr_t len UNUSED)
 {
+    /* TODO: use len, the string may not be NUL terminated */
     do_intrnl_output(mesg, 0);
 }
 
@@ -1370,7 +1371,7 @@ do_printf(char *format, ...)
 do_flush(void)
 {
     char *buff;
-    long length;
+    intptr_t length;
 
     buff = scheme_get_sized_string_output(curerr, &length);
     MZ_GC_CHECK();
@@ -2588,7 +2589,7 @@ string_to_line(Scheme_Object *obj)
 {
     char	*scheme_str = NULL;
     char	*vim_str = NULL;
-    long	len;
+    intptr_t	len;
     int		i;
 
     scheme_str = scheme_display_to_string(obj, &len);
@@ -2597,10 +2598,10 @@ string_to_line(Scheme_Object *obj)
      * are replacing a single line, and we must replace it with
      * a single line.
      */
-    if (memchr(scheme_str, '\n', len))
+    if (memchr(scheme_str, '\n', (size_t)len))
 	scheme_signal_error(_("string cannot contain newlines"));
 
-    vim_str = (char *)alloc(len + 1);
+    vim_str = (char *)alloc((int)(len + 1));
 
     /* Create a copy of the string, with internal nulls replaced by
      * newline characters, as is the vim convention.
@@ -2649,7 +2650,8 @@ vim_to_mzscheme(typval_T *vim_value, int depth, Scheme_Hash_Table *visited)
 	new_value = FALSE;
     else if (vim_value->v_type == VAR_STRING)
     {
-	result = scheme_make_string((char *)vim_value->vval.v_string);
+	result = scheme_make_string(vim_value->vval.v_string == NULL
+				    ? "" : (char *)vim_value->vval.v_string);
 	MZ_GC_CHECK();
     }
     else if (vim_value->v_type == VAR_NUMBER)

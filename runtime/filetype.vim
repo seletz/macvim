@@ -1,7 +1,7 @@
 " Vim support file to detect file types
 "
 " Maintainer:	Bram Moolenaar <Bram@vim.org>
-" Last Change:	2012 Aug 02
+" Last Change:	2012 Nov 28
 
 " Listen very carefully, I will say this only once
 if exists("did_load_filetypes")
@@ -127,6 +127,11 @@ au BufNewFile,BufRead .asoundrc,*/usr/share/alsa/alsa.conf,*/etc/asound.conf set
 
 " Arc Macro Language
 au BufNewFile,BufRead *.aml			setf aml
+
+" APT config file
+au BufNewFile,BufRead apt.conf                 setf aptconf
+au BufNewFile,BufRead */.aptitude/config       setf aptconf
+au BufNewFile,BufRead */etc/apt/apt.conf.d/{[-_[:alnum:]]\+,[-_.[:alnum:]]\+.conf} setf aptconf
 
 " Arch Inventory file
 au BufNewFile,BufRead .arch-inventory,=tagging-method	setf arch
@@ -632,6 +637,9 @@ au BufNewFile,BufRead *.dsl			setf dsl
 
 " DTD (Document Type Definition for XML)
 au BufNewFile,BufRead *.dtd			setf dtd
+
+" DTS/DSTI (device tree files)
+au BufNewFile,BufRead *.dts,*.dtsi		setf dts
 
 " EDIF (*.edf,*.edif,*.edn,*.edo)
 au BufNewFile,BufRead *.ed\(f\|if\|n\|o\)	setf edif
@@ -1558,7 +1566,7 @@ au BufNewFile,BufRead *.reg
 au BufNewFile,BufRead *.rib			setf rib
 
 " Rexx
-au BufNewFile,BufRead *.rexx,*.rex,*.jrexx,*.rxj,*.orx	setf rexx
+au BufNewFile,BufRead *.rex,*.orx,*.rxo,*.rxj,*.jrexx,*.rexxj,*.rexx,*.testGroup,*.testUnit	setf rexx
 
 " R (Splus)
 if has("fname_case")
@@ -1737,7 +1745,8 @@ au BufNewFile,BufRead *.sgm,*.sgml
 	\ if getline(1).getline(2).getline(3).getline(4).getline(5) =~? 'linuxdoc' |
 	\   setf sgmllnx |
 	\ elseif getline(1) =~ '<!DOCTYPE.*DocBook' || getline(2) =~ '<!DOCTYPE.*DocBook' |
-	\   let b:docbk_type="sgml" |
+	\   let b:docbk_type = "sgml" |
+	\   let b:docbk_ver = 4 |
 	\   setf docbk |
 	\ else |
 	\   setf sgml |
@@ -1771,6 +1780,10 @@ func! SetFileTypeSH(name)
   elseif a:name =~ '\<tcsh\>'
     " Some .sh scripts contain #!/bin/tcsh.
     call SetFileTypeShell("tcsh")
+    return
+  elseif a:name =~ '\<zsh\>'
+    " Some .sh scripts contain #!/bin/zsh.
+    call SetFileTypeShell("zsh")
     return
   elseif a:name =~ '\<ksh\>'
     let b:is_kornshell = 1
@@ -1872,6 +1885,8 @@ au BufNewFile,BufRead *.st			setf st
 au BufNewFile,BufRead *.cls
 	\ if getline(1) =~ '^%' |
 	\  setf tex |
+	\ elseif getline(1)[0] == '#' && getline(1) =~ 'rexx' |
+	\  setf rexx |
 	\ else |
 	\  setf st |
 	\ endif
@@ -2293,8 +2308,16 @@ func! s:FTxml()
   let n = 1
   while n < 100 && n < line("$")
     let line = getline(n)
-    if line =~ '<!DOCTYPE.*DocBook'
+    " DocBook 4 or DocBook 5.
+    let is_docbook4 = line =~ '<!DOCTYPE.*DocBook'
+    let is_docbook5 = line =~ ' xmlns="http://docbook.org/ns/docbook"'
+    if is_docbook4 || is_docbook5
       let b:docbk_type = "xml"
+      if is_docbook5
+	let b:docbk_ver = 5
+      else
+	let b:docbk_ver = 4
+      endif
       setf docbk
       return
     endif
