@@ -2101,6 +2101,8 @@ static void netbeansReadCallback(CFSocketRef s,
         out_flush();
         gui_update_cursor(FALSE, FALSE);
         maketitle();
+    } else if (BackingPropertiesChangedMsgID == msgid) {
+        [self redrawScreen];
     } else {
         ASLogWarn(@"Unknown message received (msgid=%d)", msgid);
     }
